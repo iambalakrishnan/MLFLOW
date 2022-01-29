@@ -29,19 +29,14 @@ def eval_metrics(actual, pred):
 
 
 if __name__ == "__main__":
-    warnings.filterwarnings("ignore")
     np.random.seed(40)
 
     # Read the wine-quality csv file from the URL
-    csv_url = (
-        "http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
-    )
+    csv_url = ("http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv")
     try:
         data = pd.read_csv(csv_url, sep=";")
     except Exception as e:
-        logger.exception(
-            "Unable to download training & test CSV, check your internet connection. Error: %s", e
-        )
+        logger.exception("Unable to download training & test CSV, check your internet connection. Error: %s", e)
 
     # Split the data into training and test sets. (0.75, 0.25) split.
     train, test = train_test_split(data)
@@ -55,7 +50,11 @@ if __name__ == "__main__":
     alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 0.5
     l1_ratio = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
 
-    with mlflow.start_run():
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+
+    mlflow.set_experiment("mlflow_demo")
+
+    with mlflow.start_run(run_name="LRmodel") as mlops_run:
         lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
         lr.fit(train_x, train_y)
 
@@ -74,7 +73,11 @@ if __name__ == "__main__":
         mlflow.log_metric("r2", r2)
         mlflow.log_metric("mae", mae)
 
+
+
+
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+        print(">>>>> tracking_url_type_store: ", tracking_url_type_store)
 
         # Model registry does not work with file store
         if tracking_url_type_store != "file":
@@ -86,3 +89,4 @@ if __name__ == "__main__":
             mlflow.sklearn.log_model(lr, "model", registered_model_name="ElasticnetWineModel")
         else:
             mlflow.sklearn.log_model(lr, "model")
+
